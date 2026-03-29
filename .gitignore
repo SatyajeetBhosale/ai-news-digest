@@ -1,0 +1,11 @@
+# Credentials — never commit
+.env
+
+# Auto-generated files
+articles.json
+digest.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
