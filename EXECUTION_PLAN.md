@@ -493,6 +493,87 @@ jobs:
 
 ---
 
+## Step 10 — Set Up GitHub Actions (Already Done)
+
+### What was built
+A file `.github/workflows/digest.yml` was added to the repo. This tells GitHub to run `run_now.py` every Sunday at 08:00 IST (02:30 UTC) on their own servers.
+
+### Cron schedule explanation
+```
+cron: '30 2 * * 0'
+│     │  │ │ │ └── Day of week: 0 = Sunday
+│     │  │ │ └──── Month: * = every month
+│     │  │ └────── Day of month: * = every day
+│     │  └──────── Hour: 2 = 2am UTC (= 8am IST)
+│     └─────────── Minute: 30
+└───────────────── Runs at 02:30 UTC every Sunday
+```
+
+### How secrets work
+Your `.env` credentials are NOT on GitHub (the `.gitignore` blocks them). Instead, you store them as **GitHub Secrets** — encrypted values that only GitHub can read. The workflow injects them as environment variables when the job runs.
+
+**To add/update secrets:**
+1. Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+2. Click **New repository secret**
+3. Add each of these:
+
+| Secret Name | Value |
+|---|---|
+| `ANTHROPIC_API_KEY` | Your Anthropic API key |
+| `EMAIL_SENDER` | `satyajeet356@gmail.com` |
+| `EMAIL_PASSWORD` | Your 16-char Gmail App Password (no spaces) |
+| `EMAIL_RECEIVER` | `satyajeet356@gmail.com` |
+
+### How to trigger it manually (for testing)
+1. Go to your repo → **Actions** tab
+2. Click **Weekly AI News Digest** in the left sidebar
+3. Click **Run workflow** → **Run workflow** (green button)
+4. Wait ~2 minutes → check your inbox
+
+### How to read the logs if something goes wrong
+1. Go to **Actions** tab → click on the latest run
+2. Click **send-digest** to expand the job
+3. Click each step to see the full output — errors will show here
+
+---
+
+### Known Issues & Fixes
+
+#### Issue 1 — Node.js deprecation warning
+**Warning message:**
+```
+Node.js 20 actions are deprecated. Actions will be forced to run with
+Node.js 24 by default starting June 2nd, 2026.
+```
+**What it means:** The workflow uses `actions/checkout@v3` and `actions/setup-python@v4` which are older versions built on Node.js 20. GitHub is moving to Node.js 24 from June 2026.
+
+**Fix:** Update the workflow file to use newer versions:
+- `actions/checkout@v3` → `actions/checkout@v4`
+- `actions/setup-python@v4` → `actions/setup-python@v5`
+
+**When to fix:** Before June 2026. The workflow still runs fine today despite the warning.
+
+---
+
+#### Issue 2 — Workflow shows green but email not received
+**What happens:** GitHub Actions shows ✅ success but no email arrives in inbox.
+
+**Why this happens:** In `emailer.py`, when the email fails to send (e.g. wrong App Password), the error is caught and printed but the script still exits with code 0 (success). GitHub Actions sees exit code 0 and marks the job as passed — even though the email never sent.
+
+**How to diagnose:**
+1. Go to **Actions** tab → click the run → click **send-digest**
+2. Expand the **Run digest pipeline** step
+3. Look for `❌ Failed to send email:` in the logs — the error message will tell you exactly what went wrong
+
+**Common causes:**
+- Gmail App Password entered incorrectly — must be exactly 16 characters, no spaces
+- Google shows the App Password as 4 groups with spaces e.g. `tqgt hspy jolp nyai` — remove all spaces before entering into GitHub Secrets: `tqgthspyjolpnyai`
+- Typo when entering the password — if unsure, open your `.env` file, copy the value after `EMAIL_PASSWORD=`, remove the spaces, and paste into GitHub Secrets
+- Wrong secret name in GitHub Secrets (must match exactly: `EMAIL_PASSWORD`)
+- App Password expired or revoked — generate a new one at myaccount.google.com
+
+---
+
 ### Option B — PythonAnywhere (Easiest Cloud Option — Free)
 
 **What it is:** A website specifically designed to host and run Python scripts. You upload your files, set a schedule, and their servers run it — no configuration files, no YAML, no complex setup.
